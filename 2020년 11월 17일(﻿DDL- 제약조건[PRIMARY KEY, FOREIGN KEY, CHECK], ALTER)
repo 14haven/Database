@@ -486,7 +486,7 @@ ON DELETE CASCADE : 부모 테이블의 데이터 삭제 시 참조하고 있는
 
 
 
-2. ON DELETE SET NUL
+2. ON DELETE SET NULL
 
 부모테이블의 데이터 삭제 시 참조하고 있는 자식 테이블의 컬럼 값이 NULL로 변경됨
 
@@ -553,7 +553,7 @@ SELECT * FROM USER_GRADE2;
 
 
 
-3. ON DELETE CASECADE
+3. ON DELETE CASCADE
 
 부모 테이블의 데이터 삭제 시 참조하고 있는 자식 테이블의 컬럼 값이 존재하던 행 전체 삭제
 
