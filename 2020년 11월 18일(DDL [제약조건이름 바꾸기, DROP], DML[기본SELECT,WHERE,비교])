@@ -21,7 +21,7 @@ GRANT / REVOKE / COMMIT / ROLLBACK
 
 
 
-CREATE 뭘 생성할건지 생성하고자하는 객체의 이름 추가적이 옵션(
+CREATE 뭘 생성할건지 생성하고자하는 객체의 이름 추가적인 옵션(
 
 표에 뭘 그릴지
 
