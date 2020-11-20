@@ -148,7 +148,7 @@ SELECT DEPT_CODE, JOB_CODE, SUM(SALARY) FROM EMPLOYEE
     GROUP BY CUBE(DEPT_CODE, JOB_CODE) ORDER BY 1;        
 
 -- GROUPING 함수
-    -- 각 레코드(ROW)가 결과 집합에 의해(GROUP BY에 의해) 조회된 인지, 
+    -- 각 레코드(ROW)가 결과 집합에 의해(GROUP BY에 의해) 조회된 데이터인지, 
     -- ROLLUP이나 CUBE에 의해서 산출된 데이터인지 구분하는 함수
     -- 인자로 전달받은 컬럼의 집계 산출물이면 1, 아니면 0을 반환
 SELECT DEPT_CODE, JOB_CODE, SUM(SALARY), 
