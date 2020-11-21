@@ -165,7 +165,7 @@ COMMIT, ROLLBACK은 트렉젝션을 수행하기 위한 언어로DTL로 구분�
 DBMS안에서 테이블, 테이블스페이스 그 외 오브젝트 들을 생성하고 삭제하고 수정할 수 있는 것
 데이터베이스의 구조를 정의하거나 변경, 삭제하기 위해 사용하는 언어
 주로 DB관리자 또는 설계자가 사용
-CREATE(개체 생성), ALTER(개체 수정), DROP(개체 삭제), TRUCATE(개체 초기화)
+CREATE(객체 생성), ALTER(객체 수정), DROP(객체 삭제), TRUCATE(객체 초기화)
 
 - 데이터 조작어 (DML, Data Manipulation Language)
 (실제 데이터를)
