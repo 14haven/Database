@@ -1,0 +1,1132 @@
+2020년 11월 25일
+
+
+관리자계정
+
+-- KUSER 권한 확인
+
+SELECT * FROM DBA_SYS_PRIVS WHERE GRANTEE = 'KUSER';
+
+SELECT * FROM DBA_TAB_PRIVS WHERE GRANTEE = 'KUSER';
+
+SELECT * FROM DBA_ROLE_PRIVS WHERE GRANTEE = 'KUSER';
+
+
+-- KUSER 접속 테스트
+
+CONNECT KUSER/KUSER;
+
+
+-- KUSER 접속 권한, 테이블 생성 권한 부여(시스템 권한)
+
+GRANT CREATE SESSION, CREATE TABLE TO KUSER;
+
+
+KUSER 계정
+
+SELECT * FROM KH.EMPLOYEE;
+
+DELETE FROM KH.EMPLOYEE; -- 권한이 없어서 오류 발생
+
+
+관리자계정
+
+-- KUSER계정에 KH계정이 만든 EMPLOYEE 테이블을 조회할 수 있는 권한 부여(오브젝트 권한)
+
+GRANT SELECT ON KH.EMPLOYEE TO KUSER;
+
+
+KUSER 계정
+
+-- 권한 부여 받은 후에는 조회 됨
+
+SELECT * FROM KH.EMPLOYEE;
+
+
+관리자계정
+
+-- KUSER 권한 조회
+
+SELECT * FROM DBA_SYS_PRIVS WHERE GRANTEE = 'KUSER';
+
+SELECT * FROM DBA_TAB_PRIVS WHERE GRANTEE = 'KUSER';
+
+
+KUSER계정
+
+-- 테이블 생성해보기
+
+CREATE TABLE MEMBER(NO NUMBER, NAME VARCHAR(20), AGE NUMBER);
+
+-- DEFAULT 테이블스페이스가 SYSTEM인 경우 테이블 생성 불가능
+
+
+관리자계정
+
+-- KUSER에게 테이블 스페이스에 대한 권한을 부여해 줘야 함
+
+GRANT UNLIMITED TABLESPACE TO KUSER;
+
+-- TABLESPACE에 대한 용량을 무제한으로 (SYSTEM이라는 TABLESPACE안에 TABLE을 생성할 수 있도록)
+
+
+KUSER계정
+
+-- 테이블 생성 할 수 있게 됨
+
+CREATE TABLE MEMBER(NO NUMBER, NAME VARCHAR(20), AGE NUMBER);
+
+
+-- 테이블 조작
+
+INSERT INTO MEMBER VALUES(1,'홍길동',20);
+
+SELECT * FROM MEMBER;
+
+UPDATE MEMBER SET AGE = 30 WHERE NO = 1;
+
+DELETE FROM MEMBER;
+
+
+SELECT * FROM USER_TAB_PRIVS; -- 자기 자신에 대한 오브젝트 권한 확인
+
+-- MEMBER라는 테이블에 대해서는 오브젝트권한을 받은 적이 없는데 조작이 왜 될까?
+
+-- 자기 자신이 만들었기 때문에 별도의 권한을 부여받지 않더라도 조작이 가능하다.
+
+
+-- KH 계정에서 조회할 수 있도록 권한 부여
+
+GRANT SELECT ON MEMBER TO KH; -- 나한테 있는 MEMBER를 KH가 조회할 수 있는 권한을 주겠다.
+
+SELECT * FROM SESSION_PRIVS; -- KUSER가 부여받은 권한
+
+SELECT * FROM USER_TAB_PRIVS; -- 자기 자신에 대한 오브젝트 권한
+
+
+관리자계정
+
+-- 새로운 계정 생성
+
+CREATE USER KUSER2 IDENTIFIED BY KUSER2;
+
+
+KUSER 계정
+
+-- KUSER2 계정에 CREATE SESSION 권한 부여 (내가 가지고 있는 권한을 다른 계정에게 줄 수 있는지 확인해보기)
+
+GRANT CREATE SESSION TO KUSER2;
+
+-- 불가
+
+
+관리자계정
+
+-- KUSER 계정에 WITH ADMIN OPTION 적용 : 다른 사용자에게 시스템 권한 부여 허가
+
+GRANT CREATE SESSION, CREATE TABLE, UNLIMITED TABLESPACE
+
+TO KUSER WITH ADMIN OPTION;
+
+-- 시스템 권한 조회
+
+SELECT * FROM DBA_SYS_PRIVS WHERE GRANTEE = 'KUSER';
+
+
+KUSER 계정
+
+GRANT CREATE SESSION TO KUSER2;
+
+-- WITH ADMIN OPTION 적용 받은 후에는 권한 부여 할 수 있음
+
+
+-- KUSER2 계정에 CREATE VIEW 권한 부여
+
+-- KUSER 계정에 CREATE VIEW 권한이 없기 때문에 다른 사용자에게 부여하지 못함
+
+GRANT CREATE VIEW TO KUSER2;
+
+
+관리자계정
+
+-- KUSER 계정에 WITH GRANT OPTION 적용 : 다른 사용자에게 오브젝트 권한 부여 허가
+
+GRANT SELECT ON KH.EMPLOYEE TO KUSER WITH GRANT OPTION;
+
+
+KUSER계정
+
+-- KUSER2 계정에 KH.EMPLOYEE 테이블의 조회 권한 부여
+
+GRANT SELECT ON KH.EMPLOYEE TO KUSER2;
+
+-- WITH GRANT OPTION 적용 받은 후에는 권한 부여 할 수 있음
+
+
+관리자계정
+
+-- KUSER 계정에 부여된 권한 제거
+
+REVOKE CREATE SESSION, CREATE TABLE, UNLIMITED TABLESPACE FROM KUSER;
+
+REVOKE SELECT ON KH.EMPLOYEE FROM KUSER;
+
+
+SELECT * FROM DBA_SYS_PRIVS WHERE GRANTEE = 'KUSER';
+
+SELECT * FROM DBA_TAB_PRIVS WHERE GRANTEE = 'KUSER';
+
+
+----------------------------------------------------------------------------------------------------------------
+
+
+ROLE
+
+사용자에게 허가 할 수 있는 권한들의 집합
+
+ROLE을 이용하면 권한 부여와 회수에 용이함
+
+
+-- 설명
+
+사용자마다 일일히 권한을 부여하는 것은 번거롭기 때문에
+
+간편하게 권한을 부여할 수 있는 방법으로 ROLE을 제공
+
+사용자에게 보다 간편하게 부여할 수 있도록 여러개의 권한을 묶어놓은 것
+
+=> 사용자 권한 관리를 보다 간편하고 효율적으로 할 수 있게 함
+
+다수의 사용자에게 공통적으로 필요한 권한들을 하나의 롤로 묶고,
+
+사용자에게는 특정 롤에 대한 권한을 부여할 수 있도록 함.
+
+사용자에게 부여한 권한을 수정하고자 할 때에도,
+
+롤만 수정하면 그 롤에 대한 권한을 부여받은 사용자들의 권한이 자동으로 수정된다.
+
+롤을 활성화하거나 비활성화하여 일시적으로 권한을 부여하고 철회할 수 있음
+
+
+롤의 종류
+
+1. 사전 정의된 롤 : 오라클 설치시 시스템에서 기본적으로 제공됨
+
+CONNECT, RESOURDCE, DBA 등...
+
+CONNECT ROLE
+
+사용자가 데이터 베이스에 접속 가능하도록 하기위한 권한이 있는 ROLE
+
+CONNECT ROLE 이 부여되지 않으면 계정이 존재하더라도 해당 계정으로 접속을 할 수 없음
+
+-- CREATE SESSION
+
+RESOURCE ROLE
+
+CREATE 구문을 통해 객체를 생성할 수 있는 권한을 모아 놓은 ROLE
+
+-- CREATE TRIGGER, CREATE SEQUENCE, CREATE TYPE, CREATE PROCEDURE,
+
+-- CREATE CLUSTER, CREATE OPERATOR, CREATE INDEXTYPE, CREATE TABLE
+
+DBA ROLE
+
+대부분의 시스템 권한 및 기타 여러가지 ROLE
+
+
+2. 사용자가 정의하는 롤 : CREAET ROLE 명령으로 롤을 생성함
+
+롤 생성은 반드시 DBA권한이 있는 사용자만 할 수 있음
+
+CREATE ROLE 롤이름; -- 1. 롤 생성
+
+GRANT 권한종류 TO 롤이름; -- 2. 생성된 롤에 권한 추가
+
+GRANT 롤이름 TO 사용자이름; -- 3. 사용자에게 롤 부여
+
+DROP ROLE 롤이름; -- 4. 롤 제거
+
+
+----------------------------------------------------------------------------------------------------------------
+
+
+-- ROLE에 부여된 권한 확인
+
+-- SELECT * FROM DBA_SYS_PRIVS WHERE GRANTEE = 'ROLE이름';
+
+SELECT * FROM DBA_SYS_PRIVS WHERE GRANTEE = 'CONNECT';
+
+SELECT * FROM DBA_SYS_PRIVS WHERE GRANTEE = 'RESOURCE';
+
+SELECT * FROM DBA_SYS_PRIVS WHERE GRANTEE = 'DBA';
+
+
+-- 계정에 ROLE 부여
+
+-- GRANT <ROLE,...> TO <계정명>
+
+GRANT CONNECT, RESOURCE TO KUSER;
+
+
+SELECT * FROM DBA_SYS_PRIVS WHERE GRANTEE = 'KUSER';
+
+
+-- 계정에 부여된 롤 확인
+
+-- SELECT * FROM DBA_ROLE_PRIVS WHERE GRANTEE = '계정명';
+
+SELECT * FROM DBA_ROLE_PRIVS WHERE GRANTEE = 'KUSER';
+
+
+-- 계정에 부여된 ROLE 제거
+
+-- REVOKE <ROLE,...> FROM <계정명>;
+
+REVOKE CONNECT, RESOURCE FROM KUSER;
+
+
+SELECT * FROM DBA_ROLE_PRIVS WHERE GRANTEE = 'KUSER';
+
+SELECT * FROM DBA_SYS_PRIVS WHERE GRANTEE = 'KUSER';
+
+
+
+----------------------------------------------------------------------------------------------------------------
+
+
+TCL(Transcation Control Language)
+
+트랜잭션 제어 언어
+
+COMMIT, ROLLBACK, SAVEPOINT, ROLLBACK TO
+
+DDL,DCL에는 적용되지 않음
+
+DDL을 사용하게 되면 AUTO COMMIT(자동 완료)가 됨
+
+
+트랜잭션이란?
+
+한꺼번에 수행되어야 할 최소의 작업 단위(논리적 작업 단위)
+
+하나의 트랜잭션으로 이루어진 작업은 반드시 한꺼번에 완료가 되어야 하며,
+
+그렇지 않은 경우는 한꺼번에 취소 되어야 함
+
+COMMIT : 트랜잭션 작업이 정상 완료되면 변경 내용을 영구히 저장
+
+ROLLBACK : 트랜잭션 작업을 취소하고 최근 COMMIT한 시점으로 이동
+
+SAVEPOINT 세이브포인트 명 : 현재 트랜잭션 작업 시점에 이름을 정해줌
+
+하나의 트랜잭션 안에 구역을 나눔
+
+ROLLBACK TO 세이브포인트 명 : 트랜잭션 작업을 취소하고 SAVEPOINT 시점으로 이동
+
+﻿﻿
+----------------------------------------------------------------------------------------------------------------
+
+
+-- 현재까지의 모든 작업완료
+
+COMMIT;
+
+
+KH 계정
+
+-- 테스트 테이블 생성
+
+CREATE TABLE USER_TBL(
+
+USERNO NUMBER UNIQUE,
+
+ID VARCHAR2(20) PRIMARY KEY,
+
+PASSWORD CHAR(20) NOT NULL
+
+);
+
+
+SELECT * FROM USER_TBL;
+
+-- KH계정, KUSER계정에서 조회해보기
+
+
+KUSER 계정
+
+SELECT * FROM USER_TBL; -- KUSER 계정에 만든 것이 아니니까 오류 뜸
+
+SELECT * FROM KH.USER_TBL; -- KH 테이블 조회 권한 없어서 오류 뜸
+
+
+KH 계정
+
+-- 테스트를 위해 KUSER 계정에 KH.USER_TBL 테이블의 조회 권한 부여(KH계정)
+
+GRANT SELECT ON KH.USER_TBL TO KUSER;
+
+
+KUSER계정
+
+SELECT * FROM KH.USER_TBL; -- 조회 됨
+
+
+KH계정
+
+-- 데이터 삽입(KH계정)
+
+INSERT INTO USER_TBL VALUES(1,'TEST1','PASS1');
+
+INSERT INTO USER_TBL VALUES(2,'TEST2','PASS2');
+
+INSERT INTO USER_TBL VALUES(3,'TEST3','PASS3');
+
+
+-- KH계정에서 조회해보기
+
+SELECT * FROM KH.USER_TBL; -- 데이터 삽입된 것 조회 됨
+
+
+KUSER계정
+
+-- KUSER계정에서 조회해보기
+
+SELECT * FROM KH.USER_TBL; -- 데이터 삽입된 것 조회 안됨
+
+
+-- KH계정에서는 삽입된 데이터 조회 되지만, KUSER 계정에서는 조회 안됨
+
+-- 작업이 완료되지 않았기 때문에
+
+
+-- 현재까지 작업 완료(KH계정)
+
+COMMIT;
+
+
+-- KH계정, KUSER계정에서 조회해보기
+
+-- KH계정, KUSER계정 모두 데이터 조회됨
+
+SELECT * FROM KH.USER_TBL;
+
+﻿﻿
+KH계정
+
+-- 데이터 삽입(KH계정)
+
+INSERT INTO USER_TBL VALUES(4,'TEST4','PASS4');
+
+
+-- 데이터 조회(KH계정)
+
+SELECT * FROM KH.USER_TBL;
+
+
+-- 마지막 COMMIT 시점으로 되돌리기
+
+ROLLBACK;
+
+
+-- 데이터 조회(KH계정)
+
+-- 3번까지 입력하고 COMMIT을 했기 때문에 이후 작업은 모두 없어짐
+
+SELECT * FROM KH.USER_TBL;
+
+
+-- 데이터 삽입(KH계정)
+
+INSERT INTO USER_TBL VALUES(4,'TEST4','PASS4');
+
+
+-- 임시 저장 위치 지정(SAVEPOINT)
+
+-- SAVEPOINT <SAVEPOINT명>;
+
+SAVEPOINT SP1;
+
+
+-- 데이터 조회(KH계정)
+
+SELECT * FROM KH.USER_TBL;
+
+
+-- 데이터 삽입(KH계정)
+
+INSERT INTO USER_TBL VALUES(5,'TEST5','PASS5');
+
+SELECT * FROM KH.USER_TBL;
+
+
+-- 임시 저장 위치로 돌아가기(ROLLBACK TO)
+
+-- ROLLBACK TO <SAVEPOINT명>;
+
+ROLLBACK TO SP1;
+
+SELECT * FROM KH.USER_TBL;
+
+
+-- 데이터 삽입(KH계정)
+
+INSERT INTO USER_TBL VALUES(5,'TEST5','PASS5');
+
+SELECT * FROM KH.USER_TBL;
+
+
+-- SP1 임시 저장 위치로 돌아가기(ROLLBACK TO)
+
+-- 한 번 썼다고 임시 저장위치가 사라지지 않음, 또 사용 할 수 있다.
+
+ROLLBACK TO SP1;
+
+SELECT * FROM KH.USER_TBL;
+
+
+-- 데이터 삽입(KH계정)
+
+INSERT INTO USER_TBL VALUES(5,'TEST5','PASS5');
+
+SELECT * FROM KH.USER_TBL;
+
+
+-- 임시 저장 위치 지정
+
+SAVEPOINT SP2;
+
+
+-- SP2 로 돌아가기
+
+ROLLBACK TO SP2;
+
+SELECT * FROM KH.USER_TBL;
+
+﻿﻿
+-- 데이터 삽입(KH계정)
+
+INSERT INTO USER_TBL VALUES(6,'TEST6','PASS6');
+
+SELECT * FROM KH.USER_TBL;
+
+
+-- SP1로 돌아가기
+
+ROLLBACK TO SP1;
+
+SELECT * FROM KH.USER_TBL;
+
+﻿﻿
+-- SP2로 돌아가기
+
+-- SP1로 돌아가면서 SP2는 없어짐
+
+ROLLBACK TO SP2; --에러
+
+SELECT * FROM KH.USER_TBL;
+
+﻿﻿
+-- 처음으로 돌아가기
+
+-- 마지막 COMMIT(작업완료) 한 시점으로 돌아가기
+
+ROLLBACK;
+
+SELECT * FROM KH.USER_TBL;
+
+﻿﻿COMMIT을 하게 되면 SAVEPOINT가 사라지게 된다.
+
+﻿
+----------------------------------------------------------------------------------------------------------------
+
+
+데이터 딕셔너리(Data Dictionary)
+
+자원을 효율적으로 관리하기 위해 다양한 정보를 저장하는 시스템 테이블
+
+사용자가 테이블을 생성하거나, 사용자를 변경하는등의 작업을 할 때 데이터베이스 서버에 의해 자동으로 갱신되는 테이블
+
+사용자는 데이터 딕셔너리의 내용을 직접 수정하거나 삭제할 수 없음
+
+
+원본 테이블을 커스터마이징 해서 보여주는 원본테이블의 가상 TABLE객체
+
+
+3개의 데이터 딕셔너리 뷰로 나뉨
+
+1. DBA_XXX : 데이터베이스 관리자만 접근이 가능한 객체등의 정보 조회
+
+(모든 객체에 대해 조회 가능)
+
+2. ALL_XXX : 자신의 계정 + 권한을 부여받은 객체 정보를 조회
+
+3. USER_XXX : 자신의 계정이 소유한 객체등에 관한 정보 조회
+
+
+----------------------------------------------------------------------------------------------------------------
+
+
+-- USER_CONSTRINTS
+
+-- 제약조건 관리하는 데이터 사전
+
+SELECT * FROM USER_CONSTRAINTS;
+
+-- USER_CONS_COLUMNS;
+
+-- 제약조건을 컬럼별로 관리하는 데이터 사전
+
+SELECT * FROM USER_CONS_COLUMNS;
+
+-- USER_TABLES
+
+-- 테이블을 관리하는 데이터 사전
+
+-- 자신의 계정이 소유한 객체 등에 관한 정보를 조회 할 수 있는 딕셔너리 뷰
+
+SELECT * FROM USER_TABLES;
+
+-- USER_TAB_COLS
+
+-- 테이블의 컬럼을 관리하는 데이터 사전
+
+SELECT * FROM USER_TAB_COLS;
+
+
+----------------------------------------------------------------------------------------------------------------
+
+
+VIEW(뷰)
+
+SELECT 쿼리의 실행 결과를 화면에 저장한 논리적 가상 테이블
+
+실제 테이블과는 다르게 실질적 데이터를 저장하고 있진 않지만
+
+사용자는 테이블을 사용하는 것과 동일하게 사용 가능
+
+
+표현식 : CREATE [OR REPLACE] VIEW 뷰이름 AS SELECT문;
+
+﻿﻿
+----------------------------------------------------------------------------------------------------------------
+
+
+-- 현재 계정의 권한 확인
+
+SELECT * FROM SESSION_PRIVS;
+
+-- RESOURCE ROLE에는 CREATE VIEW에 대한 권한이 포함되어 있지 않음
+
+-- VIEW 를 생성하기 위해서는 별도의 권한을 추가 해 줘야 함
+
+
+-- KH 계정에 VIEW를 생성할 수 있는 CREATE VIEW 권한 추가(관리자 계정으로 실행해야 함!!!!)
+
+GRANT CREATE VIEW TO KH;
+
+
+-- 다시 KH 계정으로 돌아와서 진행
+
+-- 권한 다시 확인(CREATE VIEW가 추가됨)
+
+SELECT * FROM SESSION_PRIVS;
+
+
+
+-- 직원 테이블에서 사번, 이름, 부서코드만 별도의 VIEW로 생성
+
+CREATE VIEW V_EMP AS
+
+SELECT EMP_ID, EMP_NAME, DEPT_CODE FROM EMPLOYEE;
+
+﻿﻿
+-- 현재 계정의 뷰에 대한 정보를 확인하는 데이터 사전
+
+SELECT * FROM USER_VIEWS;
+
+
+-- 뷰 사용
+
+-- 일반 테이블과 동일하게 사용
+
+-- 구조 확인
+
+DESC V_EMP;
+
+-- 뷰 데이터 조회
+
+SELECT * FROM V_EMP;
+
+
+-- 여러 테이블을 이용해 VIEW를 생성
+
+-- 직원의 사번, 이름, 부서명, 근무지역이 들어간 VIEW 생성
+
+CREATE VIEW V_EMPLOYEE AS
+
+SELECT EMP_ID, EMP_NAME, DEPT_TITLE, LOCAL_NAME FROM EMPLOYEE
+
+LEFT JOIN DEPARTMENT ON (DEPT_CODE = DEPT_ID)
+
+LEFT JOIN LOCATION ON (LOCATION_ID = LOCAL_CODE);
+
+SELECT * FROM USER_VIEWS;
+
+SELECT * FROM V_EMPLOYEE;
+
+
+-- 현재 작업까지 완료
+
+COMMIT;
+
+
+-- 뷰의 베이스가 되는 테이블의 정보가 변경되면 VIEW의 정보도 같이 변경됨
+
+UPDATE EMPLOYEE SET EMP_NAME = '송중기' WHERE EMP_ID = 201;
+
+
+SELECT * FROM EMPLOYEE WHERE EMP_ID = 201;
+
+SELECT * FROM V_EMPLOYEE WHERE EMP_ID = 201;
+
+
+ROLLBACK; -- 송종기로 다시 돌아감
+
+
+-- 뷰 삭제
+
+-- DROP VIEW <뷰이름>;
+
+DROP VIEW V_EMPLOYEE;
+
+SELECT * FROM USER_VIEWS;
+
+
+-- 뷰의 컬럼에 별칭 부여
+
+CREATE VIEW V_EMPLOYEE AS
+
+SELECT EMP_ID 사번, EMP_NAME 이름, DEPT_TITLE 부서, NATIONAL_NAME 지역 FROM EMPLOYEE
+
+LEFT JOIN DEPARTMENT ON (DEPT_CODE = DEPT_ID)
+
+LEFT JOIN LOCATION ON (LOCATION_ID = LOCAL_CODE)
+
+LEFT JOIN NATIONAL USING (NATIONAL_CODE);
+
+
+SELECT * FROM V_EMPLOYEE;
+
+DROP VIEW V_EMPLOYEE;
+
+-- 또는
+
+-- 모든 컬럼에 별칭을 부여 해야 한다
+
+CREATE VIEW V_EMPLOYEE(사번, 이름, 부서, 지역) AS
+
+SELECT EMP_ID, EMP_NAME, DEPT_TITLE, NATIONAL_NAME FROM EMPLOYEE
+
+LEFT JOIN DEPARTMENT ON (DEPT_CODE = DEPT_ID)
+
+LEFT JOIN LOCATION ON (LOCATION_ID = LOCAL_CODE)
+
+LEFT JOIN NATIONAL USING (NATIONAL_CODE);
+
+
+SELECT * FROM V_EMPLOYEE;
+
+
+-- 뷰 SELECT문(서브쿼리) 안에 연산의 결과도 포함할 수 있음
+
+CREATE VIEW V_EMP_JOB(사번, 이름, 직급, 성별, 근무년수) AS
+
+SELECT EMP_ID, EMP_NAME, JOB_NAME,
+
+DECODE(SUBSTR(EMP_NO,8,1),1,'남',2,'여'),
+
+EXTRACT(YEAR FROM SYSDATE) - EXTRACT(YEAR FROM HIRE_DATE)
+
+FROM EMPLOYEE
+
+JOIN JOB USING(JOB_CODE);
+
+
+SELECT * FROM V_EMP_JOB;
+
+
+-- 생성된 뷰의 내용을 변경
+
+-- 생성된 뷰에서 DML구문(INSERT, UPDATE, DELETE, SELECT) 사용 가능
+
+-- 뷰 생성
+
+CREATE VIEW V_JOB AS SELECT JOB_CODE, JOB_NAME FROM JOB;
+
+SELECT * FROM JOB;
+
+SELECT * FROM V_JOB;
+
+
+-- 뷰에 데이터 삽입
+
+-- 뷰를 통해서 원본 테이블에 데이터를 삽입
+
+INSERT INTO V_JOB VALUES('J8','인턴');
+
+SELECT * FROM V_JOB; -- 정상 삽입됨
+
+SELECT * FROM JOB; -- 원본테이블에도 정상 삽입 되어 있음
+
+
+-- 뷰 데이터 수정
+
+-- 뷰를 통해서 원본 테이블의 데이터를 수정
+
+UPDATE V_JOB SET JOB_NAME = '알바' WHERE JOB_CODE = 'J8';
+
+SELECT * FROM V_JOB;
+
+SELECT * FROM JOB;
+
+
+-- 뷰 데이터 삭제
+
+-- 뷰를 통해서 원본 테이블의 데이터를 삭제
+
+DELETE FROM V_JOB WHERE JOB_CODE = 'J8';
+
+SELECT * FROM V_JOB;
+
+SELECT * FROM JOB;
+
+
+
+DML 명령어로 VIEW 조작이 불가능한 경우
+
+1. 뷰 정의에 포함되지 않은 컬럼을 조작하는 경우
+
+2. 뷰에 포함되지 않은 컬럼 중에 베이스가 되는 컬럼이 NOT NULL 제약조건이 지정된 경우
+
+3. 산술 표현식으로 정의된 경우
+
+4. JOIN을 이용해 여러 테이블을 연결한 경우
+
+5. DISTINCT를 포함한 경우
+
+6. 그룹합수나 GROUP BY절을 포함한 경우
+
+
+
+1. 뷰 정의에 포함되지 않은 컬럼이 조작하는 경우
+
+-- SELECT, INSERT, UPDATE 조작불가, DELETE는 조작가능
+
+CREATE VIEW V_JOB2 AS SELECT JOB_CODE FROM JOB;
+
+SELECT * FROM V_JOB2;
+
+
+-- 데이터 삽입
+
+INSERT INTO V_JOB2 VALUES('J8','인턴'); -- 오류 발생, 나한테 정의되지 않은 컬럼에까지 데이터를 삽입하려하니까 오류가 뜸
+
+INSERT INTO V_JOB2 VALUES('J8'); -- 정상 삽입
+
+SELECT * FROM V_JOB2;
+
+SELECT * FROM JOB;
+
+-- 데이터 수정
+
+UPDATE V_JOB2 SET JOB_NAME = '인턴' WHERE JOB_CODE = 'J7'; -- 오류 발생
+
+-- 데이터 삭제
+
+-- 정의되지 않은 컬럼이 있더라도 삭제는 가능함
+
+DELETE FROM V_JOB2 WHERE JOB_CODE = 'J7'; -- JOB_NAME 은 내가 포함한 컬이 아닌데 JOB_CODE 삭제하면 행이 같이 삭제됨
+
+SELECT * FROM JOB;
+
+-- 데이터 조회
+
+--JOB_NAME이 정의되지 않아서 조회 불가능
+
+SELECT JOB_NAME, JOB_CODE FROM V_JOB2;
+
+
+ROLL BACK;
+
+﻿﻿
+2. 뷰에 포함되지 않은 컬럼 중에, 베이스가 되는 테이블 컬럼이 NOT NULL 제약조건이 지정된 경우
+
+CREATE VIEW V_JOB3 AS SELECT JOB_NAME FROM JOB;
+
+
+SELECT * FROM V_JOB3;
+
+
+-- 데이터 삽입
+
+INSERT INTO V_JOB3 VALUES('인턴'); -- 에러
+
+DESC JOB; -- 원본테이블인 JOB 테이블의 JOB_CODE는 NOT NULL 제약조건이 지정되어 있음
+
+-- 데이터 수정
+
+UPDATE V_JOB3 SET JOB_NAME = '인턴' WHERE JOB_NAME = '사원';
+
+SELECT * FROM JOB;
+
+-- 데이터 삭제
+
+DELETE FROM V_JOB3 WHERE JOB_NAME = '인턴'; -- 가능
+
+SELECT * FROM JOB;
+
+
+ROLLBACK;
+
+
+3. 산술표현식으로 정의된 경우
+
+CREATE VIEW EMP_SAL
+
+AS SELECT EMP_ID, EMP_NAME, SALARY,
+
+(SALARY + (SALARY *NVL(BONUS,0))) * 12 연봉
+
+FROM EMPLOYEE;
+
+SELECT * FROM EMP_SAL;
+
+
+-- 데이터 삽입
+
+-- 연봉은 실제 원본테이블에 저장될 컬럼이 없음
+
+INSERT INTO EMP_SAL VALUES(800, '정진훈', 3000000, 4000000); --에러
+
+-- 데이터 수정
+
+UPDATE EMP_SAL SET 연봉 = 8000000 WHERE EMP_ID = 200; --에러
+
+UPDATE EMP_SAL SET EMP_ID = 800 WHERE 연봉 = 44400000; -- 조건으로 참고만 할때는 가능
+
+-- 데이터 삭제
+
+DELETE FROM EMP_SAL WHERE 연봉 = 72000000; -- 가능
+
+SELECT * FROM EMP_SAL;
+
+SELECT * FROM EMPLOYEE;
+
+
+ROLLBACK;
+
+
+4. JOIN을 이용해 여러 테이블을 연결한 경우
+
+CREATE VIEW V_JOINEMP AS
+
+SELECT EMP_ID, EMP_NAME, DEPT_TITLE FROM EMPLOYEE
+
+JOIN DEPARTMENT ON (DEPT_CODE = DEPT_ID);
+
+
+SELECT * FROM V_JOINEMP;
+
+-- 데이터 삽입
+
+INSERT INTO V_JOINEMP VALUES(888,'조세오','인사관리부'); -- 에러
+
+-- 데이터 수정
+
+UPDATE V_JOINEMP SET DEPT_TITLE = '인사관리부' WHERE EMP_ID = 200; -- 에러
+
+UPDATE V_JOINEMP SET EMP_NAME = '선동이' WHERE EMP_ID = 200; -- 가능
+
+UPDATE V_JOINEMP SET EMP_NAME = '총총이' WHERE DEPT_TITLE = '총무부'; -- 가능
+
+-- 조인한 테이블은 수정 불가능, FROM으로 조회한 테이블은 수정 가능
+
+
+-- 데이터 삭제
+
+DELETE FROM V_JOINEMP WHERE EMP_ID = 200; -- 가능
+
+SELECT * FROM V_JOINEMP; -- 삭제됨
+
+SELECT * FROM EMPLOYEE; -- 삭제됨
+
+SELECT * FROM DEPARTMENT; -- 삭제 안됨
+
+
+ROLLBACK;
+
+
+5. DISTINCT를 포함한 경우
+
+-- DISTINCT 를 사용한 경우 INSERT/UPDATE/DELETE 시 에러 발생
+
+CREATE VIEW V_DTEMP AS
+
+SELECT DISTINCT JOB_CODE FROM EMPLOYEE;
+
+SELECT * FROM V_DTEMP;
+
+INSERT INTO V_DTEMP VALUES('J9'); -- 에러
+
+UPDATE V_DTEMP SET JOB_CODE = 'J9' WHERE JOB_CODE = 'J7'; -- 에러
+
+DELETE FROM V_DTEMP WHERE JOB_CODE = 'J1'; -- 에러, DISTINCT로 그룹을 묶어놨기 때문에 뭐가 J1인지 헷갈림
+
+
+ROLLBACK;
+
+
+6. 그룹함수나 GROUP BY 절을 포함한 경우
+
+-- INSERT/UPDATE/DELETE 시 모두 에러 발생
+
+CREATE VIEW V_GROUPDEPT AS
+
+SELECT DEPT_CODE, SUM(SALARY) 합계, AVG(SALARY) 평균 FROM EMPLOYEE
+
+GROUP BY DEPT_CODE;
+
+SELECT * FROM V_GROUPDEPT;
+
+INSERT INTO V_GROUPDETP VALUES('D10',6000000,4000000); -- 에러
+
+UPDATE V_GROUPDETP SET DEPT_CODE = 'D10' WHERE DEPT_COD = 'D1'; -- 에러
+
+-- D1끼리 그룹으로 묶어 놓은 것
+
+DELETE FROM V_GROUPDEPT WHERE DEPT_CODE = 'D1'; -- 에러
+
+
+----------------------------------------------------------------------------------------------------------------
+
+
+VIEW 옵션
+
+1. OR REPLACE 옵션
+
+2. FORCE
+
+3. NOFORCE 옵션
+
+4. WITH CHECK OPTION 옵션
+
+5. WITH READ ONLY 옵션
+
+
+1. OR REPLACE : 기존에 동일한 뷰 이름이 존재하는 경우 덮어쓰고, 존재하지 않으면 새로 생성
+
+-- VIEW 생성
+
+CREATE VIEW V_OPT1 AS SELECT EMP_ID, EMP_NAME FROM EMPLOYEE;
+
+SELECT * FROM V_OPT1;
+
+
+-- 동일한 이름으로 VIEW 생성 하면 오류 발생
+
+CREATE VIEW V_OPT1 AS
+
+SELECT EMP_ID, EMP_NAME, PHONE, EMAIL FROM EMPLOYEE;
+
+SELECT * FROM V_OPT1;
+
+
+-- OR REPLACE 옵션 사용 시 수정됨
+
+CREATE OR REPLACE VIEW V_OPT1 AS
+
+SELECT EMP_ID, EMP_NAME, PHONE, EMAIL FROM EMPLOYEE;
+
+SELECT * FROM V_OPT1;
+
+
+2. NOFORCE 옵션 : 서브쿼리에서 사용된 테이블이 존재해야만 뷰 생성함(기본값)
+
+-- 기본적으로 NOFORCE가 포함 돼있다고 생각하면 됨
+
+
+CREATE OR REPLACE /*NOFORCE*/ VIEW V_OPT2 AS
+
+SELECT TCODE, TNAME, TCONTENT FROM TT;
+
+
+3. FORCE 옵션 : 서브쿼리에서 사용된 테이블이 존재하지 않아도 뷰 생성
+
+CREATE OR REPLACE FORCE VIEW V_OPT2 AS
+
+SELECT TCODE, TNAME, TCONNECT FROM TT;
+
+
+-- 만들어져있는 뷰 확인
+
+SELECT * FROM USER_VIEWS;
+
+SELECT * FROM V_OPT2; -- V_OPT2가 만들어지긴 만들어지는데 조회될 내용이 없어서 오류 뜸
+
+
+-- 뷰 먼저 만들어 놓고 그거에 맞춰서 테이블을 생성하고 싶을 때 사용
+
+-- 연결 돼 있는 테이블이 없기 때문에 삽입도 안되고 수정도 안됨 , TT라는 테이블을 만들어야 가능
+
+
+CREATE TABLE TT(TCODE NUMBER, TNAME VARCHAR2(20), TCONNECT VARCHAR2(50),
+
+TSUBJECT VARCHAR2(30));
+
+SELECT * FROM V_OPT2; -- 조회 됨
+
+
+4. WITH CHECK OPTION : 옵션을 설정한 컬럼의 값을 수정하지 못하게 함
+
+-- WHERE 절에 WITH CHECK OPTION 을 기술
+
+-- 조건(WHERE절)에 사용되어진 컬럼은 조건에 위배되면 INSERT/UPDATE 불가
+
+
+CREATE OR REPLACE VIEW V_OPT3 AS
+
+SELECT * FROM JOB WHERE JOB_CODE = 'J4' WITH CHECK OPTION;
+
+SELECT * FROM V_OPT3;
+
+SELECT * FROM JOB;
+
+
+INSERT INTO V_OPT3 VALUES('J8','인턴'); -- 에러, 위에서 WHERE절에서 J4인것만 삽입한다고 함, 조건에 안맞아서 오류
+
+UPDATE V_OPT3 SET JOB_CODE = 'J8' WHERE JOB_CODE = 'J4'; -- 에러
+
+
+DELETE FROM V_OPT3; -- 가능
+
+SELECT * FROM JOB; -- JOB에서도 삭제
+
+
+ROLLBACK;
+
+
+5. WITH READ ONLY : DML(INSERT,UPDATE,DELETE) 수행 불가능
+
+CREATE OR REPLACE VIEW V_OPT4 AS
+
+SELECT * FROM DEPARTMENT WITH READ ONLY;
+
+
+SELECT * FROM V_OPT4;
+
+INSERT INTO V_OPT4 VALUES('D10','기술부','L1'); -- 에러
+
+UPDATE V_OPT4 SET LOCATION_ID = 'L5' WHERE DEPT_ID = 'D1'; -- 에러
+
+DELETE FROM V_OPT4; -- 에러
